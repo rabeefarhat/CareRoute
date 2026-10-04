@@ -7,5 +7,4 @@ Accept: application/json
 ### One existing patient (Lotte Peeters) → expect 200
 GET {{CareRoute.Api_HostAddress}}/api/patients/3f2c1a9e-6b1d-4c7a-9a51-0f4e2b7d8c11
 Accept: application/json
-
 ###
