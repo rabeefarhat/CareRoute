@@ -8,3 +8,18 @@ Accept: application/json
 GET {{CareRoute.Api_HostAddress}}/api/patients/3f2c1a9e-6b1d-4c7a-9a51-0f4e2b7d8c11
 Accept: application/json
 ###
+
+### T3 — Unknown but well-formed id → expect 404 WITH a ProblemDetails body
+GET {{CareRoute.Api_HostAddress}}/api/patients/00000000-0000-0000-0000-000000000001
+Accept: application/json
+
+### T4 — Malformed id (not a GUID) → expect 404 with an EMPTY body
+GET {{CareRoute.Api_HostAddress}}/api/patients/not-a-guid
+Accept: application/json
+
+### T5 — Routing is case-insensitive → expect 200 with 3 items
+GET {{CareRoute.Api_HostAddress}}/API/Patients
+Accept: application/json
+
+### T6 — Unsupported method → expect 405 Method Not Allowed
+DELETE {{CareRoute.Api_HostAddress}}/api/patients/3f2c1a9e-6b1d-4c7a-9a51-0f4e2b7d8c11
