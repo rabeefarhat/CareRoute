@@ -4,15 +4,15 @@ CONTINUITY UPDATE
 
 ## CURRENT STATE
 
-**Last completed lesson:** L01 — Start the project: Visual Studio 2026, .NET 10 & your first API
-**Next lesson:** L02 — ASP.NET Core fundamentals: pipeline, DI, configuration, validation, errors
+**Last completed lesson:** L02 — ASP.NET Core fundamentals: pipeline, DI, configuration, validation, errors
+**Next lesson:** L03 — Clean Architecture & the testing toolkit
 **Pace:** 4 lessons a day (~2 hours each, 9 days)
-**Today:** Day 1 — L01 ✅, L02, L03, L04
+**Today:** Day 1 — L01 ✅, L02 ✅, L03, L04
 **Behind schedule?** __
 
 ### Project state (CareRoute — hospital platform)
-- **Last project step completed:** P01 First API — ✅ code provided — tick when it runs on your machine
-- **Physical location:** __ (e.g., `D:\CareRoute\`)
+- **Last project step completed:** P02 Fundamentals — ✅ code provided — tick when it runs on your machine
+- **Physical location:** __
 - **Solution tree:**
 ```
   CareRoute/
@@ -21,7 +21,14 @@ CONTINUITY UPDATE
   └─ src/
      └─ CareRoute.Api/
         ├─ Controllers/PatientsController.cs
+        ├─ Controllers/DiagnosticsController.cs
+        ├─ ErrorHandling/GlobalExceptionHandler.cs
+        ├─ Options/ReferralOptions.cs
         ├─ Patients/Patient.cs
+        ├─ Patients/RegisterPatientRequest.cs
+        ├─ Patients/PatientResponse.cs
+        ├─ Patients/IPatientStore.cs
+        ├─ Patients/InMemoryPatientStore.cs
         ├─ Properties/launchSettings.json
         ├─ appsettings.json
         ├─ appsettings.Development.json
@@ -29,21 +36,28 @@ CONTINUITY UPDATE
         ├─ CareRoute.Api.csproj
         └─ Program.cs
 ```
-- **What works:** `GET /api/patients` → 200 with 3 fictional patients; `GET /api/patients/{id:guid}` → 200 or 404 ProblemDetails; malformed id → empty 404; OpenAPI at `/openapi/v1.json` (Development only); manual test plan T1–T6 passes.
-- **Differences from the lessons / known issues:** __ (none expected)
-- **HTTPS port:** __ (7xxx)
+- **What works:** GET list (sorted by last name) / GET by id (404 ProblemDetails) / POST register → 201 + Location; automatic 400 ValidationProblemDetails; over-posted `id` ignored; unhandled exception → 500 ProblemDetails without details; `Referrals` options validated at startup; `/health` → Healthy; dev-only `/api/diagnostics/throw` and `/api/diagnostics/race`; manual tests T1–T17 pass.
+- **Differences from the lessons / known issues:** __
+- **HTTPS port:** __
 - **GitHub repository URL:** __
 
 ### Code facts (VERIFIED names and signatures — Claude must use these, never guess)
-- Project `CareRoute.Api` at `src/CareRoute.Api`, `<TargetFramework>net10.0</TargetFramework>`, Nullable + ImplicitUsings enabled.
-- `Program.cs` (top-level statements): `AddControllers()`, `AddOpenApi()`, `MapOpenApi()` in Development, `UseHttpsRedirection()`, `UseAuthorization()`, `MapControllers()`.
-- `namespace CareRoute.Api.Patients;` → `public sealed record Patient(Guid Id, string FirstName, string LastName, DateOnly DateOfBirth);`
-- `namespace CareRoute.Api.Controllers;` → `[ApiController] [Route("api/[controller]")] public sealed class PatientsController : ControllerBase`
-  - `private static readonly IReadOnlyList<Patient> Patients` (3 hard-coded fictional patients)
-  - `[HttpGet] public ActionResult<IReadOnlyList<Patient>> GetAll()`
-  - `[HttpGet("{id:guid}")] public ActionResult<Patient> GetById(Guid id)`
-- Fictional patient IDs: Lotte Peeters `3f2c1a9e-6b1d-4c7a-9a51-0f4e2b7d8c11` (1985-07-30); Jonas Maes `8d4e2b10-91a3-4f6e-b2c7-5a1d9e3f7b22` (1992-03-14); Amira El Idrissi `c7a91f35-2e4d-4b8a-8f60-3d2c1b0a9e33` (2001-11-02).
-- `CareRoute.Api.http`: variable `@CareRoute.Api_HostAddress`; requests T1–T6.
+- Project `CareRoute.Api` at `src/CareRoute.Api`, `net10.0`, Nullable + ImplicitUsings enabled.
+- `Program.cs` services: `AddControllers()`, `AddOpenApi()`, `AddProblemDetails()`, `AddExceptionHandler<GlobalExceptionHandler>()`, `AddSingleton<IPatientStore, InMemoryPatientStore>()`, `AddOptions<ReferralOptions>().BindConfiguration(ReferralOptions.Section).ValidateDataAnnotations().ValidateOnStart()`, `AddHealthChecks()`.
+- `Program.cs` pipeline: `UseExceptionHandler()` → `MapOpenApi()` (Development) → `UseHttpsRedirection()` → `UseAuthorization()` → `MapControllers()` → `MapHealthChecks("/health")`.
+- `namespace CareRoute.Api.Patients;`
+  - `public sealed record Patient(Guid Id, string FirstName, string LastName, DateOnly DateOfBirth);` (unchanged)
+  - `public sealed record RegisterPatientRequest` with `[Required][StringLength(100, MinimumLength = 1)] string? FirstName { get; init; }`, same for `LastName`, `[Required] DateOnly? DateOfBirth { get; init; }`
+  - `public sealed record PatientResponse(Guid Id, string FirstName, string LastName, DateOnly DateOfBirth)` with `public static PatientResponse From(Patient patient)`
+  - `public interface IPatientStore` { `Task<IReadOnlyList<Patient>> GetAllAsync(CancellationToken cancellationToken)`; `Task<Patient?> GetByIdAsync(Guid id, CancellationToken cancellationToken)`; `Task AddAsync(Patient patient, CancellationToken cancellationToken)` }
+  - `public sealed class InMemoryPatientStore : IPatientStore` — `ConcurrentDictionary<Guid, Patient>`, seeded with the 3 fictional patients, `AddAsync` throws `InvalidOperationException` on duplicate id.
+- `namespace CareRoute.Api.Options;` → `public sealed class ReferralOptions` { `const string Section = "Referrals"`; `[Range(1,365)] int MaxDraftAgeDays { get; init; }`; `[Range(1,168)] int UrgentTriageHours { get; init; }` }; `appsettings.json` `Referrals: { MaxDraftAgeDays: 30, UrgentTriageHours: 48 }`.
+- `namespace CareRoute.Api.ErrorHandling;` → `public sealed class GlobalExceptionHandler(IProblemDetailsService, ILogger<GlobalExceptionHandler>) : IExceptionHandler` → logs the error, writes 500 ProblemDetails (title "An unexpected error occurred."), returns true.
+- `namespace CareRoute.Api.Controllers;`
+  - `PatientsController(IPatientStore store, ILogger<PatientsController> logger) : ControllerBase` — `[ApiController] [Route("api/[controller]")]`; `GetAll(CancellationToken)` → `ActionResult<IReadOnlyList<PatientResponse>>`; `[HttpGet("{id:guid}")] GetById(Guid id, CancellationToken)` → `ActionResult<PatientResponse>`; `[HttpPost] Register(RegisterPatientRequest request, CancellationToken)` → `CreatedAtAction(nameof(GetById), …)`; logs `"Registered patient {PatientId}"`.
+  - `DiagnosticsController(IHostEnvironment environment)` — `[Route("api/diagnostics")]`, `[ApiExplorerSettings(IgnoreApi = true)]`; `[HttpGet("throw")] Throw()`; `[HttpPost("race")] Race([FromServices] IPatientStore, CancellationToken)` → `{ expected, added }`; both 404 outside Development.
+- Fictional patient IDs: unchanged from L01.
+- `CareRoute.Api.http`: requests T1–T17 (T13 uses `# @name overpost`).
 
 ### Azure resources (from L28)
 | Resource | Name | Tier | Region | Running cost note |
@@ -54,21 +68,22 @@ CONTINUITY UPDATE
 _(unchanged — keep items 1–8)_
 
 ### Project steps
-- [x] P01 First API · [ ] P02 Fundamentals · [ ] P03 Clean Architecture + test toolkit · [ ] P04 Domain I
+- [x] P01 First API · [x] P02 Fundamentals · [ ] P03 Clean Architecture + test toolkit · [ ] P04 Domain I
 _(rest unchanged)_
 
 ### Ubiquitous language (source of truth: docs/ubiquitous-language.md)
-- _(empty — starts in L03)_ — terms used informally so far: Patient
+- _(empty — starts in L03)_ — terms used informally so far: Patient, Register (a patient), Referral (options only)
 
 ### Environment
-- Visual Studio 2026 version: __ · workloads: ASP.NET and web development, Azure development
-- .NET SDK: __ (10.0.x)
-_(rest unchanged)_
+_(unchanged)_
 
 ### Weak spots (max 15)
-- (candidate — keep or delete) Why a malformed id gives an empty 404 (route constraint) while an unknown id gives a ProblemDetails 404 (action ran)
-- (candidate — keep or delete) The C# → IL → JIT chain, explained out loud without notes
-- (candidate — keep or delete) Which settings live in `launchSettings.json` vs `appsettings.json`
+- (keep or delete from L01) Malformed id → empty 404 vs unknown id → ProblemDetails 404
+- (keep or delete from L01) C# → IL → JIT chain out loud
+- (keep or delete from L01) launchSettings.json vs appsettings.json
+- (candidate — keep or delete) Why `[Required]` needs `DateOnly?` instead of `DateOnly`
+- (candidate — keep or delete) Captive dependency: explain it and its fix without notes
+- (candidate — keep or delete) Config binding is case-insensitive — what a "typo" test really needs
 
 ### Things that confused me
 - __
@@ -77,10 +92,13 @@ _(rest unchanged)_
 - _(none)_
 
 ### Decisions (ADRs, one line each)
-- _(none yet — ADR-001 Clean Architecture comes in L03)_ · informal: controllers, not minimal APIs; 404 (not 400) for malformed ids via `:guid` constraint
+- _(none yet — ADR-001 in L03)_ · informal: controllers only; 404 for malformed ids; singleton in-memory store with ConcurrentDictionary; async store interface ready for EF Core; exception details never in responses
+
+
 
 (b) Add to `## LESSON LOG`:
 | L01 | __ | __ | .NET/SDK/runtime/LTS; C#→IL→JIT→Kestrel; controllers created per request; silent 404 without MapControllers | __ /5 | __ |
+| L02 | __ | __ | pipeline order; request flow & [ApiController]; DI lifetimes & captive deps; DTOs vs over-posting; ValidateOnStart; ProblemDetails; await ≠ new thread; 💥 List<T> race | __ /5 | __ |
 
 (c) Append to `## KEY IDEAS CHEAT SHEET`:
 - SDK builds, runtime runs; C# compiles to IL, the JIT turns IL into machine code at runtime, Kestrel serves HTTP.
@@ -89,3 +107,9 @@ _(rest unchanged)_
 - Trade-off: controllers give structure, filters and conventions; minimal APIs give less ceremony — pick one style per service.
 - Failure mode: a 404 with an empty body means no endpoint matched — check `MapControllers()`, `public`, `: ControllerBase`, and route constraints.
 - Status codes are the verdict: 404 for missing data, never 200 with an error in the body.
+- Middleware is a nested chain: first registered = outermost; the exception handler goes first.
+- Request flow: routing → DI creates controller → bind → validate → filters → action → result; `[ApiController]` auto-400s invalid input.
+- Lifetimes flow downwards only; a singleton must be thread-safe (List<T> lost writes under 1,000 parallel adds).
+- Trade-off: ValidateOnStart costs a slower start but turns config typos into deploy-time crashes.
+- Failure mode: `.Result` blocks pool threads → thread-pool starvation → latency spikes with low CPU.
+- DTOs are allow-lists; for value types, use `DateOnly?` + `[Required]` or a missing value becomes the default.

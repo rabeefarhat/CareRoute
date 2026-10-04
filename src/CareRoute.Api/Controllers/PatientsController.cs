@@ -1,28 +1,49 @@
-﻿// src/CareRoute.Api/Controllers/PatientsController.cs  (Api layer — HTTP only)
+﻿// src/CareRoute.Api/Controllers/PatientsController.cs
 using CareRoute.Api.Patients;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CareRoute.Api.Controllers;
 
-[ApiController]                                                         // ①
-[Route("api/[controller]")]                                             // ②
-public sealed class PatientsController : ControllerBase                 // ③
+[ApiController]
+[Route("api/[controller]")]
+public sealed class PatientsController(
+    IPatientStore store,
+    ILogger<PatientsController> logger) : ControllerBase                        // ①
 {
-    // Fictional patients. Hard-coded for L01; an injected store replaces this in L02.
-    private static readonly IReadOnlyList<Patient> Patients =           // ④
-    [
-        new(Guid.Parse("3f2c1a9e-6b1d-4c7a-9a51-0f4e2b7d8c11"), "Lotte", "Peeters",  new DateOnly(1985, 7, 30)),
-        new(Guid.Parse("8d4e2b10-91a3-4f6e-b2c7-5a1d9e3f7b22"), "Jonas", "Maes",     new DateOnly(1992, 3, 14)),
-        new(Guid.Parse("c7a91f35-2e4d-4b8a-8f60-3d2c1b0a9e33"), "Amira", "El Idrissi", new DateOnly(2001, 11, 2))
-    ];
-
-    [HttpGet]                                                           // ⑤
-    public ActionResult<IReadOnlyList<Patient>> GetAll() => Ok(Patients);
-
-    [HttpGet("{id:guid}")]                                              // ⑥
-    public ActionResult<Patient> GetById(Guid id)
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<PatientResponse>>> GetAll(
+        CancellationToken cancellationToken)                                    // ②
     {
-        var patient = Patients.FirstOrDefault(p => p.Id == id);        // ⑦
-        return patient is null ? NotFound() : Ok(patient);             // ⑧
+        var patients = await store.GetAllAsync(cancellationToken);
+        return Ok(patients.Select(PatientResponse.From).ToList());
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<PatientResponse>> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var patient = await store.GetByIdAsync(id, cancellationToken);
+        if (patient is null)
+        {
+            return NotFound();                                                  // ③
+        }
+        return PatientResponse.From(patient);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<PatientResponse>> Register(
+        RegisterPatientRequest request, CancellationToken cancellationToken)    // ④
+    {
+        var patient = new Patient(
+            Guid.NewGuid(),                                                     // ⑤
+            request.FirstName!.Trim(),
+            request.LastName!.Trim(),
+            request.DateOfBirth!.Value);
+
+        await store.AddAsync(patient, cancellationToken);
+
+        logger.LogInformation("Registered patient {PatientId}", patient.Id);    // ⑥
+
+        return CreatedAtAction(nameof(GetById), new { id = patient.Id },        // ⑦
+            PatientResponse.From(patient));
     }
 }

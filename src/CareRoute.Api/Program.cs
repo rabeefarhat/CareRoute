@@ -1,23 +1,36 @@
+// src/CareRoute.Api/Program.cs  (composition root)
+using CareRoute.Api.ErrorHandling;
+using CareRoute.Api.Options;
+using CareRoute.Api.Patients;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
+// ---- Services (DI registrations) ----
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();                                   // ①
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();         // ②
+builder.Services.AddSingleton<IPatientStore, InMemoryPatientStore>();   // ③
+builder.Services.AddOptions<ReferralOptions>()
+    .BindConfiguration(ReferralOptions.Section)                         // ④
+    .ValidateDataAnnotations()
+    .ValidateOnStart();                                                 // ⑤
+builder.Services.AddHealthChecks();                                     // ⑥
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ---- Pipeline (order = behaviour) ----
+app.UseExceptionHandler();                                              // ⑦ outermost: catches everything below
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");                                         // ⑧
 
 app.Run();

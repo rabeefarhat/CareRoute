@@ -23,3 +23,75 @@ Accept: application/json
 
 ### T6 — Unsupported method → expect 405 Method Not Allowed
 DELETE {{CareRoute.Api_HostAddress}}/api/patients/3f2c1a9e-6b1d-4c7a-9a51-0f4e2b7d8c11
+
+### T7 — register a patient (expect 201 + Location)
+POST {{CareRoute.Api_HostAddress}}/api/patients
+Content-Type: application/json
+
+{
+  "firstName": "Noor",
+  "lastName": "Janssens",
+  "dateOfBirth": "1990-05-12"
+}
+
+### T8 — health (expect 200 Healthy)
+GET {{CareRoute.Api_HostAddress}}/health
+
+### T9 — missing firstName (expect 400 ValidationProblemDetails, errors.FirstName)
+POST {{CareRoute.Api_HostAddress}}/api/patients
+Content-Type: application/json
+
+{
+  "lastName": "Maes",
+  "dateOfBirth": "1990-05-12"
+}
+
+### T10 — missing dateOfBirth (expect 400, errors.DateOfBirth)
+POST {{CareRoute.Api_HostAddress}}/api/patients
+Content-Type: application/json
+
+{
+  "firstName": "Noor",
+  "lastName": "Janssens"
+}
+
+### T11 — firstName exactly 100 chars (expect 201)
+POST {{CareRoute.Api_HostAddress}}/api/patients
+Content-Type: application/json
+
+{
+  "firstName": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "lastName": "Boundary",
+  "dateOfBirth": "1990-05-12"
+}
+
+### T12 — firstName 101 chars (expect 400, errors.FirstName)
+POST {{CareRoute.Api_HostAddress}}/api/patients
+Content-Type: application/json
+
+{
+  "firstName": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "lastName": "Boundary",
+  "dateOfBirth": "1990-05-12"
+}
+
+### T13 — client sends its own id (expect 201 with a DIFFERENT, server-generated id)
+# @name overpost
+POST {{CareRoute.Api_HostAddress}}/api/patients
+Content-Type: application/json
+
+{
+  "id": "00000000-0000-0000-0000-000000000001",
+  "firstName": "Sofie",
+  "lastName": "Wouters",
+  "dateOfBirth": "1978-09-03"
+}
+
+### T13b — the created patient is reachable at its new id (expect 200)
+GET {{CareRoute.Api_HostAddress}}/api/patients/{{overpost.response.body.$.id}}
+
+### T14 — deliberate exception (expect 500 ProblemDetails, no stack trace, no exception message)
+GET {{CareRoute.Api_HostAddress}}/api/diagnostics/throw
+
+### T15 — unknown patient (expect 404 ProblemDetails with "title": "Not Found")
+GET {{CareRoute.Api_HostAddress}}/api/patients/11111111-1111-1111-1111-111111111111
