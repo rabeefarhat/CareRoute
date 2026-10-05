@@ -1,5 +1,7 @@
-﻿// src/CareRoute.Api/Patients/IPatientStore.cs
-namespace CareRoute.Api.Patients;
+﻿// src/CareRoute.Application/PatientRegistry/IPatientStore.cs
+using CareRoute.Domain.PatientRegistry;
+
+namespace CareRoute.Application.PatientRegistry;
 
 public interface IPatientStore
 {

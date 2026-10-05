@@ -1,3 +1,19 @@
 <Solution>
-  <Project Path="src/CareRoute.Api/CareRoute.Api.csproj" />
+  <Folder Name="/docs/">
+    <File Path="docs/ubiquitous-language.md" />
+  </Folder>
+  <Folder Name="/docs/adr/">
+    <File Path="docs/adr/ADR-001-clean-architecture.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/CareRoute.Api/CareRoute.Api.csproj" />
+    <Project Path="src/CareRoute.Application/CareRoute.Application.csproj" />
+    <Project Path="src/CareRoute.Domain/CareRoute.Domain.csproj" />
+    <Project Path="src/CareRoute.Infrastructure/CareRoute.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CareRoute.Application.Tests/CareRoute.Application.Tests.csproj" Id="78b62c79-e4b1-401a-b626-7a2115468d0f" />
+    <Project Path="tests/CareRoute.Domain.Tests/CareRoute.Domain.Tests.csproj" Id="ae59a4e4-c948-4242-b676-9fd43a833dfa" />
+    <Project Path="tests/CareRoute.Testing/CareRoute.Testing.csproj" Id="96628a4f-c3b2-465d-8de1-d23f54ad656b" />
+  </Folder>
 </Solution>

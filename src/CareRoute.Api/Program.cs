@@ -1,7 +1,8 @@
 // src/CareRoute.Api/Program.cs  (composition root)
 using CareRoute.Api.ErrorHandling;
 using CareRoute.Api.Options;
-using CareRoute.Api.Patients;
+using CareRoute.Application;
+using CareRoute.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,7 +11,9 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();                                   // ①
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();         // ②
-builder.Services.AddSingleton<IPatientStore, InMemoryPatientStore>();   // ③
+builder.Services
+    .AddApplication()
+    .AddInfrastructure();   // ③
 builder.Services.AddOptions<ReferralOptions>()
     .BindConfiguration(ReferralOptions.Section)                         // ④
     .ValidateDataAnnotations()

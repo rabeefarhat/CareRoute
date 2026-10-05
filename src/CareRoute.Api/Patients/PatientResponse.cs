@@ -1,4 +1,8 @@
 ﻿// src/CareRoute.Api/Patients/PatientResponse.cs
+
+using CareRoute.Domain.PatientRegistry;
+
+
 namespace CareRoute.Api.Patients;
 
 public sealed record PatientResponse(Guid Id, string FirstName, string LastName, DateOnly DateOfBirth)

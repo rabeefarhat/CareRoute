@@ -1,7 +1,9 @@
-﻿// src/CareRoute.Api/Patients/InMemoryPatientStore.cs
+﻿// src/CareRoute.Infrastructure/PatientRegistry/InMemoryPatientStore.cs (top of file only)
 using System.Collections.Concurrent;
+using CareRoute.Application.PatientRegistry;
+using CareRoute.Domain.PatientRegistry;
 
-namespace CareRoute.Api.Patients;
+namespace CareRoute.Infrastructure.PatientRegistry;
 
 public sealed class InMemoryPatientStore : IPatientStore
 {
