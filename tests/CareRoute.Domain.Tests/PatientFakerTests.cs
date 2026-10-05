@@ -4,45 +4,36 @@ using FluentAssertions;
 
 namespace CareRoute.Domain.Tests;
 
-public sealed class PatientFakerTests
+public class PatientFakerTests
 {
     [Fact]
     public void Same_seed_produces_the_same_first_patient()
     {
-        // Arrange
-        var first = new PatientFaker(seed: 42);
-        var second = new PatientFaker(seed: 42);
+        var first = new PatientFaker(seed: 42).Generate();
+        var second = new PatientFaker(seed: 42).Generate();
 
-        // Act
-        var a = first.Generate();
-        var b = second.Generate();
-
-        // Assert
-        b.Should().Be(a);                                                     // ①
+        first.Id.Should().Be(second.Id);
+        first.NationalNumber.Should().Be(second.NationalNumber);
+        first.Name.Should().Be(second.Name);
     }
 
     [Fact]
     public void Different_seeds_produce_different_patients()
     {
-        // Act
-        var a = new PatientFaker(seed: 1).Generate();
-        var b = new PatientFaker(seed: 2).Generate();
+        var first = new PatientFaker(seed: 1).Generate();
+        var second = new PatientFaker(seed: 2).Generate();
 
-        // Assert
-        b.Id.Should().NotBe(a.Id);                                            // ②
+        first.Id.Should().NotBe(second.Id);
     }
 
     [Fact]
     public void Birth_dates_are_within_90_years_before_the_reference_date()
     {
-        // Arrange
-        var oldestAllowed = new DateOnly(1936, 1, 1);                         // ③
-        var newestAllowed = new DateOnly(2026, 1, 1);
+        var reference = DateOnly.FromDateTime(CareRouteDataSet.DefaultReferenceDate);
 
-        // Act
-        var birthDates = new PatientFaker().Generate(200).Select(p => p.DateOfBirth);
+        var patients = new PatientFaker().Generate(200);
 
-        // Assert
-        birthDates.Should().OnlyContain(d => d >= oldestAllowed && d <= newestAllowed); // ④
+        patients.Should().OnlyContain(p =>
+            p.DateOfBirth >= reference.AddYears(-90) && p.DateOfBirth <= reference);
     }
 }

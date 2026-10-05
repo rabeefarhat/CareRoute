@@ -1,4 +1,4 @@
-@CareRoute.Api_HostAddress = http://localhost:7015
+@CareRoute.Api_HostAddress = https://localhost:7015
 
 ### List all patients → expect 200 with 3 items
 GET {{CareRoute.Api_HostAddress}}/api/patients
@@ -95,3 +95,60 @@ GET {{CareRoute.Api_HostAddress}}/api/diagnostics/throw
 
 ### T15 — unknown patient (expect 404 ProblemDetails with "title": "Not Found")
 GET {{CareRoute.Api_HostAddress}}/api/patients/11111111-1111-1111-1111-111111111111
+
+### L04-1 List: 3 seeded patients, birth dates derived from national numbers
+GET {{CareRoute.Api_HostAddress}}/api/patients
+
+### L04-2 Register a valid 1985 patient (dots and dashes accepted)
+POST {{CareRoute.Api_HostAddress}}/api/patients
+Content-Type: application/json
+
+{
+  "firstName": "  Emma ",
+  "lastName": "Willems",
+  "nationalNumber": "85.07.30-033.28",
+  "gpId": "d0c70000-0000-0000-0000-000000000001"
+}
+
+### L04-3 Register a valid 2000 patient (2000+ rule)
+POST {{CareRoute.Api_HostAddress}}/api/patients
+Content-Type: application/json
+
+{
+  "firstName": "Lucas",
+  "lastName": "Peeters",
+  "nationalNumber": "00010100105",
+  "gpId": "d0c70000-0000-0000-0000-000000000001"
+}
+
+### L04-4 Wrong check digits -> 409 national_number.invalid_check
+POST {{CareRoute.Api_HostAddress}}/api/patients
+Content-Type: application/json
+
+{
+  "firstName": "Emma",
+  "lastName": "Willems",
+  "nationalNumber": "85.07.30-033.29",
+  "gpId": "d0c70000-0000-0000-0000-000000000001"
+}
+
+### L04-5 Empty GP id -> 409 patient.gp_required (passes [Required], fails the domain)
+POST {{CareRoute.Api_HostAddress}}/api/patients
+Content-Type: application/json
+
+{
+  "firstName": "Emma",
+  "lastName": "Willems",
+  "nationalNumber": "85073003328",
+  "gpId": "00000000-0000-0000-0000-000000000000"
+}
+
+### L04-6 Missing national number -> 400 from [ApiController], the domain never runs
+POST {{CareRoute.Api_HostAddress}}/api/patients
+Content-Type: application/json
+
+{
+  "firstName": "Emma",
+  "lastName": "Willems",
+  "gpId": "d0c70000-0000-0000-0000-000000000001"
+}

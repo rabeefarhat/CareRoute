@@ -1,50 +1,53 @@
 ﻿// tests/CareRoute.Application.Tests/PatientRegistry/RegisterPatientServiceTests.cs
 using CareRoute.Application.PatientRegistry;
 using CareRoute.Domain.PatientRegistry;
+using CareRoute.Domain.SharedKernel;
 using FluentAssertions;
 using NSubstitute;
 
 namespace CareRoute.Application.Tests.PatientRegistry;
 
-public sealed class RegisterPatientServiceTests
+public class RegisterPatientServiceTests
 {
-    private static readonly DateOnly BirthDate = new(1984, 3, 12);            // ①
+    private const string ValidNationalNumber = "85.07.30-033.28";
+    private static readonly Guid GpId = Guid.Parse("d0c70000-0000-0000-0000-000000000001");
+
+    private readonly IPatientStore _store = Substitute.For<IPatientStore>();
 
     [Fact]
     public async Task Registering_adds_the_patient_to_the_store_exactly_once()
     {
-        // Arrange
-        var store = Substitute.For<IPatientStore>();                          // ②
-        var service = new RegisterPatientService(store);
+        var service = new RegisterPatientService(_store);
 
-        // Act
-        await service.RegisterAsync("Lotte", "Peeters", BirthDate, CancellationToken.None);
+        await service.RegisterAsync("Emma", "Willems", ValidNationalNumber, GpId, CancellationToken.None);
 
-        // Assert
-        await store.Received(1).AddAsync(                                     // ③
-            Arg.Is<Patient>(p =>
-                p.FirstName == "Lotte" &&
-                p.LastName == "Peeters" &&
-                p.DateOfBirth == BirthDate),
+        await _store.Received(1).AddAsync(
+            Arg.Is<Patient>(p => p.NationalNumber.Value == "85073003328" && p.GpId == new DoctorId(GpId)),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task Registering_returns_the_id_of_the_stored_patient()
     {
-        // Arrange
-        var store = Substitute.For<IPatientStore>();
         Patient? stored = null;
-        store.When(s => s.AddAsync(Arg.Any<Patient>(), Arg.Any<CancellationToken>()))
-             .Do(call => stored = call.Arg<Patient>());                       // ④
-        var service = new RegisterPatientService(store);
+        await _store.AddAsync(Arg.Do<Patient>(p => stored = p), Arg.Any<CancellationToken>());
+        var service = new RegisterPatientService(_store);
 
-        // Act
-        var id = await service.RegisterAsync("Jens", "Maes", BirthDate, CancellationToken.None);
+        var id = await service.RegisterAsync("Emma", "Willems", ValidNationalNumber, GpId, CancellationToken.None);
 
-        // Assert
         stored.Should().NotBeNull();
-        id.Should().NotBeEmpty();                                             // ⑤
-        id.Should().Be(stored!.Id);                                           // ⑥
+        id.Should().Be(stored!.Id);
+        id.IsEmpty.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task An_invalid_national_number_never_reaches_the_store()
+    {
+        var service = new RegisterPatientService(_store);
+
+        var act = () => service.RegisterAsync("Emma", "Willems", "85.07.30-033.29", GpId, CancellationToken.None);
+
+        (await act.Should().ThrowAsync<DomainException>()).Which.Code.Should().Be("national_number.invalid_check");
+        await _store.DidNotReceiveWithAnyArgs().AddAsync(default!, default);
     }
 }

@@ -6,17 +6,16 @@ namespace CareRoute.Testing.Fakers;
 
 public sealed class PatientFaker : Faker<Patient>
 {
-    public const int DefaultSeed = 20260;                                      // ①
-    private static readonly DateTime ReferenceDate = new(2026, 1, 1);          // ②
+    public const int DefaultSeed = 20260;
+    private static readonly DateTime ReferenceDate = CareRouteDataSet.DefaultReferenceDate;
 
-    public PatientFaker(int seed = DefaultSeed) : base(locale: "nl_BE")        // ③
+    public PatientFaker(int seed = DefaultSeed) : base("nl_BE")
     {
-        UseSeed(seed);                                                         // ④
-        CustomInstantiator(f => new Patient(                                   // ⑤
-            Id: f.Random.Guid(),                                               // ⑥
-            FirstName: f.Name.FirstName(),
-            LastName: f.Name.LastName(),
-            DateOfBirth: DateOnly.FromDateTime(
-                f.Date.Past(yearsToGoBack: 90, refDate: ReferenceDate))));     // ⑦
+        UseSeed(seed);
+        CustomInstantiator(f => Patient.Register(
+            new PatientId(f.Random.Guid()),
+            NationalNumber.Create(f.CareRoute().NationalNumber(ReferenceDate)),
+            PersonName.Create(f.Name.FirstName(), f.Name.LastName()),
+            new DoctorId(f.Random.Guid())));
     }
 }
