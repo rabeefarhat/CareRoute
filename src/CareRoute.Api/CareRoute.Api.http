@@ -1,0 +1,19 @@
+@host = https://localhost:7038
+### 1. List patients
+GET {{host}}/api/patients
+Accept: application/json
+
+### 2. Known patient
+GET {{host}}/api/patients/0f8fad5b-d9cb-469f-a165-70867728950e
+Accept: application/json
+
+### 3. Unknown patient (valid GUID, not in the list)
+GET {{host}}/api/patients/11111111-1111-1111-1111-111111111111
+Accept: application/json
+
+### 4. Malformed id (not a GUID)
+GET {{host}}/api/patients/abc
+Accept: application/json
+
+### 5. OpenAPI document (Development only)
+GET {{host}}/openapi/v1.json
