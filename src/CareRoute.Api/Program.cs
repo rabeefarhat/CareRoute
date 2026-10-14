@@ -8,20 +8,36 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-builder.Services.AddProblemDetails();                                          // ①
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();                // ②
-builder.Services.AddHealthChecks();                                            // ③
+builder.Services.AddProblemDetails(options =>
+    options.CustomizeProblemDetails = context =>                                             // ①
+    {
+        var problem = context.ProblemDetails;
+        var status = problem.Status ?? context.HttpContext.Response.StatusCode;
+        var (type, code) = ProblemTypes.ForStatus(status);                                   // ②
 
-builder.Services.AddSingleton<IPatientStore, InMemoryPatientStore>();          // ④
+        if (problem.Type is null || !problem.Type.StartsWith(ProblemTypes.BaseUri, StringComparison.Ordinal))
+        {
+            problem.Type = type;                                                             // ③
+        }
+
+        problem.Extensions.TryAdd("errorCode", code);                                        // ④
+        problem.Instance ??= context.HttpContext.Request.Path;                               // ⑤
+    });
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddHealthChecks();
+
+builder.Services.AddSingleton<IPatientStore, InMemoryPatientStore>();
 
 builder.Services.AddOptions<ReferralOptions>()
-    .BindConfiguration(ReferralOptions.SectionName)                            // ⑤
+    .BindConfiguration(ReferralOptions.SectionName)
     .ValidateDataAnnotations()
-    .ValidateOnStart();                                                        // ⑥
+    .ValidateOnStart();
 
 var app = builder.Build();
 
-app.UseExceptionHandler();                                                     // ⑦
+app.UseExceptionHandler();
+app.UseStatusCodePages();                                                                    // ⑥
 
 if (app.Environment.IsDevelopment())
 {
@@ -31,7 +47,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 
-app.MapHealthChecks("/health");                                                // ⑧
+app.MapHealthChecks("/health");
 app.MapControllers();
 
 app.Run();

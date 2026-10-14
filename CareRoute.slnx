@@ -1,3 +1,6 @@
 <Solution>
+  <Folder Name="/docs/">
+    <File Path="docs/api-guidelines.md" />
+  </Folder>
   <Project Path="src/CareRoute.Api/CareRoute.Api.csproj" />
 </Solution>

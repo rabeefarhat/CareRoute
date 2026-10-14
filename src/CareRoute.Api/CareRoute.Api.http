@@ -1,73 +1,76 @@
-@host = https://localhost:7038
-### 1. List patients
-GET {{host}}/api/patients
-Accept: application/json
+# src/CareRoute.Api/CareRoute.Api.http   (manual checks · L03)
+@baseUrl = https://localhost:7038/api/v1
+@emmaId = 0f8fad5b-d9cb-469f-a165-70867728950e
+@lucasId = 7c9e6679-7425-40de-944b-e07fc1f90ae7
 
-### 2. Known patient
-GET {{host}}/api/patients/0f8fad5b-d9cb-469f-a165-70867728950e
-Accept: application/json
+### 1. First page, default size
+GET {{baseUrl}}/patients
 
-### 3. Unknown patient (valid GUID, not in the list)
-GET {{host}}/api/patients/11111111-1111-1111-1111-111111111111
-Accept: application/json
+### 2. Page 1, size 2 → hasNextPage: true
+GET {{baseUrl}}/patients?page=1&pageSize=2
 
-### 4. Malformed id (not a GUID)
-GET {{host}}/api/patients/abc
-Accept: application/json
+### 3. Search "pee" → only Emma Peeters
+GET {{baseUrl}}/patients?search=pee
 
-### 5. OpenAPI document (Development only)
-GET {{host}}/openapi/v1.json
+### 4. Page size 1000 → 400 ValidationProblemDetails
+GET {{baseUrl}}/patients?pageSize=1000
 
-### 6. Register a patient (valid) → 201 + Location
-POST {{host}}/api/patients
+### 5. Get one
+GET {{baseUrl}}/patients/{{emmaId}}
+
+### 6. Register → 201 + Location
+POST {{baseUrl}}/patients
 Content-Type: application/json
 
-{
-  "firstName": "Sara",
-  "lastName": "Willems",
-  "dateOfBirth": "1990-04-12"
-}
+{ "firstName": "Sofie", "lastName": "Willems", "dateOfBirth": "1979-03-21" }
 
-### 7. Missing firstName → 400 ValidationProblemDetails
-POST {{host}}/api/patients
+### 7. Replace Emma (send twice → same result both times)
+PUT {{baseUrl}}/patients/{{emmaId}}
 Content-Type: application/json
 
-{
-  "lastName": "Willems",
-  "dateOfBirth": "1990-04-12"
-}
+{ "firstName": "Emma", "lastName": "Peeters-Claes", "dateOfBirth": "1985-07-30" }
 
-### 8. Over-posting attempt: client tries to choose the id → ignored
-POST {{host}}/api/patients
+### 8. PUT unknown id → 404 patient_not_found
+PUT {{baseUrl}}/patients/11111111-1111-1111-1111-111111111111
 Content-Type: application/json
 
-{
-  "id": "99999999-9999-9999-9999-999999999999",
-  "firstName": "Tom",
-  "lastName": "Maes",
-  "dateOfBirth": "1978-09-01"
-}
+{ "firstName": "Ghost", "lastName": "Patient", "dateOfBirth": "2000-01-01" }
 
-### 9. Missing dateOfBirth → 400 (thanks to DateOnly?)
-POST {{host}}/api/patients
-Content-Type: application/json
+### 9. Delete Lucas (send twice → 204, then 404)
+DELETE {{baseUrl}}/patients/{{lucasId}}
 
-{
-  "firstName": "Lena",
-  "lastName": "Claes"
-}
+### 10. Unknown route → 404 ProblemDetails (not empty)
+GET {{baseUrl}}/doctors
 
-### 10. Wrong content type → 415
-POST {{host}}/api/patients
+### 11. Wrong method → 405 ProblemDetails
+PATCH {{baseUrl}}/patients/{{emmaId}}
+
+### 12. Wrong content type → 415
+POST {{baseUrl}}/patients
 Content-Type: text/plain
 
-firstName=Lena
+Sofie Willems
 
-### 11. Health → 200 Healthy
-GET {{host}}/health
+### 13. Referral policy (moved to v1)
+GET {{baseUrl}}/referral-policy
 
-### 12. Unhandled exception → 500 ProblemDetails, no stack trace (DEV ONLY endpoint)
-GET {{host}}/api/diagnostics/throw
+### 14. OpenAPI contract
+GET https://localhost:7038/openapi/v1.json
 
-### 13. Referral policy from configuration
-GET {{host}}/api/referral-policy
+### C2a. page=0 → 400
+GET {{baseUrl}}/patients?page=0
+
+### C2b. pageSize=0 → 400
+GET {{baseUrl}}/patients?pageSize=0
+
+### C4. Last page
+GET {{baseUrl}}/patients?page=2&pageSize=2
+
+### C5. Beyond last page → empty items
+GET {{baseUrl}}/patients?page=5&pageSize=2
+
+### C13. Simulated crash (DEV ONLY) → 500 without internals
+GET https://localhost:7038/api/diagnostics/throw
+
+### C14. Query string must not be echoed in "instance"
+GET {{baseUrl}}/doctors?search=Peeters

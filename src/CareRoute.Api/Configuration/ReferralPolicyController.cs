@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 namespace CareRoute.Api.Configuration;
 
 [ApiController]
-[Route("api/referral-policy")]
+[Route("api/v1/referral-policy")]
 public sealed class ReferralPolicyController(IOptions<ReferralOptions> options) : ControllerBase
 {
     [HttpGet]
