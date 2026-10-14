@@ -1,6 +1,11 @@
 <Solution>
   <Folder Name="/docs/">
+    <File Path="docs/api-checklist.md" />
     <File Path="docs/api-guidelines.md" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitattributes" />
+    <File Path="global.json" />
   </Folder>
   <Project Path="src/CareRoute.Api/CareRoute.Api.csproj" />
 </Solution>
