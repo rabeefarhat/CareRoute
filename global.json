@@ -1,0 +1,7 @@
+// global.json  (repo root — comments aren't allowed in JSON; don't paste this line)
+{
+  "sdk": {
+    "version": "10.0.100",
+    "rollForward": "latestFeature"
+  }
+}

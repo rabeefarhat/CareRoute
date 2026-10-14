@@ -361,3 +361,20 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# ---- CareRoute additions (L04) ----
+# Local-only configuration that may contain secrets
+appsettings.*.local.json
+appsettings.Local.json
+*.env
+.env*
+!.env.example
+
+# Certificates and keys
+*.pem
+*.key
+*.p12
+*.crt
+
+# Keycloak / Java build output (from L28)
+identity/**/target/
