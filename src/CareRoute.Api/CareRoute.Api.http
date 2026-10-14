@@ -17,3 +17,57 @@ Accept: application/json
 
 ### 5. OpenAPI document (Development only)
 GET {{host}}/openapi/v1.json
+
+### 6. Register a patient (valid) → 201 + Location
+POST {{host}}/api/patients
+Content-Type: application/json
+
+{
+  "firstName": "Sara",
+  "lastName": "Willems",
+  "dateOfBirth": "1990-04-12"
+}
+
+### 7. Missing firstName → 400 ValidationProblemDetails
+POST {{host}}/api/patients
+Content-Type: application/json
+
+{
+  "lastName": "Willems",
+  "dateOfBirth": "1990-04-12"
+}
+
+### 8. Over-posting attempt: client tries to choose the id → ignored
+POST {{host}}/api/patients
+Content-Type: application/json
+
+{
+  "id": "99999999-9999-9999-9999-999999999999",
+  "firstName": "Tom",
+  "lastName": "Maes",
+  "dateOfBirth": "1978-09-01"
+}
+
+### 9. Missing dateOfBirth → 400 (thanks to DateOnly?)
+POST {{host}}/api/patients
+Content-Type: application/json
+
+{
+  "firstName": "Lena",
+  "lastName": "Claes"
+}
+
+### 10. Wrong content type → 415
+POST {{host}}/api/patients
+Content-Type: text/plain
+
+firstName=Lena
+
+### 11. Health → 200 Healthy
+GET {{host}}/health
+
+### 12. Unhandled exception → 500 ProblemDetails, no stack trace (DEV ONLY endpoint)
+GET {{host}}/api/diagnostics/throw
+
+### 13. Referral policy from configuration
+GET {{host}}/api/referral-policy
